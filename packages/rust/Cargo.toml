@@ -13,7 +13,7 @@ categories = ["api-bindings", "cryptography"]
 reqwest = { version = "0.12.28", features = ["json"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
-hmac = "0.12.1"
+hmac = "0.13.0"
 sha2 = "0.10.9"
 hex = "0.4.3"
 subtle = "2.6.1"
