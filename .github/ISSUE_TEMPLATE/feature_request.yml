@@ -1,0 +1,35 @@
+name: Feature request
+description: Ask for an endpoint, helper, or example that is missing.
+title: "[feature] "
+labels:
+  - enhancement
+body:
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      multiple: true
+      options:
+        - nowpayments-node
+        - nowpayments-py
+        - nowpayments-php
+        - nowpayments-go
+        - nowpayments-ruby
+        - nowpayments-rust
+        - all SDKs
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What you cannot do with the SDK today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: The method or endpoint you want, and a link to the NOWPayments docs if you have one.
+    validations:
+      required: true

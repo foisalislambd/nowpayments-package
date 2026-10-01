@@ -1,0 +1,56 @@
+{
+  "name": "nowpayments-node",
+  "version": "1.0.4",
+  "description": "Full-featured TypeScript/Node.js SDK for NOWPayments cryptocurrency payment API",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "nowpayments",
+    "crypto",
+    "cryptocurrency",
+    "bitcoin",
+    "ethereum",
+    "payment",
+    "payment-gateway",
+    "crypto-payments",
+    "payments-api"
+  ],
+  "author": "Foisalislambd (https://github.com/Foisalislambd)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Foisalislambd/nowpayments-node.git"
+  },
+  "homepage": "https://github.com/Foisalislambd/nowpayments-node#readme",
+  "bugs": {
+    "url": "https://github.com/Foisalislambd/nowpayments-node/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "axios": "^1.16.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}
