@@ -6,7 +6,7 @@ description = "Full-featured Rust SDK for NOWPayments cryptocurrency payment API
 license = "MIT"
 authors = ["Foisalislambd"]
 repository = "https://github.com/foisalislambd/nowpayments-package"
-keywords = ["nowpayments", "crypto", "cryptocurrency", "bitcoin", "ethereum", "payment", "payment-gateway"]
+keywords = ["nowpayments", "crypto", "bitcoin", "ethereum", "payment"]
 categories = ["api-bindings", "cryptography"]
 
 [dependencies]
