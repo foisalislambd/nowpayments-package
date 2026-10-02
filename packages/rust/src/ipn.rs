@@ -1,7 +1,7 @@
 //! IPN (Instant Payment Notification) verification utilities
 //! Matches official docs: sort keys recursively, then HMAC-SHA512
 
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use serde_json::Value;
 use sha2::Sha512;
 
@@ -83,7 +83,9 @@ pub fn verify_ipn_signature(
     }
 
     use subtle::ConstantTimeEq;
-    computed_bytes.ct_eq(&sig_bytes).into()
+    AsRef::<[u8]>::as_ref(&computed_bytes)
+        .ct_eq(sig_bytes.as_slice())
+        .into()
 }
 
 /// Create IPN signature for testing (e.g., mocking callbacks)
