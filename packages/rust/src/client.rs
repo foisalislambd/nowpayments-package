@@ -220,7 +220,7 @@ impl NowPayments {
         match jwt_token {
             Some(token) if !token.trim().is_empty() => {
                 self.client
-                    .get_with_params_auth("/v1/payment/", &query, token)
+                    .get_with_params_auth("/v1/payment/", &query, Some(token))
                     .await
             }
             _ => self.client.get_with_params("/v1/payment/", &query).await,

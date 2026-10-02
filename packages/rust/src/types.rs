@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Payment status values – API may return "sending" or "spending"
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PaymentStatus {
     Waiting,

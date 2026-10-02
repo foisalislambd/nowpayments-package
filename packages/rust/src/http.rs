@@ -12,6 +12,15 @@ pub struct HttpClient {
     base_url: String,
 }
 
+fn api_error_message(data: &Option<Value>, text: &str) -> String {
+    data.as_ref()
+        .and_then(|d| d.get("message").and_then(|m| m.as_str()))
+        .or_else(|| data.as_ref().and_then(|d| d.get("msg").and_then(|m| m.as_str())))
+        .or_else(|| data.as_ref().and_then(|d| d.get("error").and_then(|e| e.as_str())))
+        .unwrap_or(text)
+        .to_string()
+}
+
 impl HttpClient {
     fn map_send_err(e: reqwest::Error) -> NowPaymentsError {
         if e.is_timeout() {
@@ -60,15 +69,14 @@ impl HttpClient {
     }
 
     pub async fn get<T: DeserializeOwned>(&self, path: &str) -> Result<T, NowPaymentsError> {
-        self.get_with_params::<T, (&str, String)>(path, &[]).await
+        self.get_with_params(path, &[]).await
     }
 
-    pub async fn get_with_params<T: DeserializeOwned, P: AsRef<[(&str, String)]>>(
+    pub async fn get_with_params<T: DeserializeOwned>(
         &self,
         path: &str,
-        params: P,
+        params: &[(&str, String)],
     ) -> Result<T, NowPaymentsError> {
-        let params = params.as_ref();
         let mut req = self.build_request(Method::GET, path);
         if !params.is_empty() {
             let query: Vec<_> = params
@@ -238,12 +246,7 @@ impl HttpClient {
             return Ok(text.trim().trim_matches('"').to_string());
         }
         let data: Option<serde_json::Value> = serde_json::from_str(&text).ok();
-        let message = data
-            .as_ref()
-            .and_then(|d| d.get("message").and_then(|m| m.as_str()))
-            .or_else(|| data.as_ref().and_then(|d| d.get("msg").and_then(|m| m.as_str())))
-            .or_else(|| data.as_ref().and_then(|d| d.get("error").and_then(|e| e.as_str())))
-            .unwrap_or(&text);
+        let message = api_error_message(&data, &text);
         let code = data
             .as_ref()
             .and_then(|d| d.get("code"))
@@ -284,18 +287,7 @@ impl HttpClient {
             })
         } else {
             let data: Option<serde_json::Value> = serde_json::from_str(&text).ok();
-            let message = data
-                .as_ref()
-                .and_then(|d| d.get("message").and_then(|m| m.as_str()))
-                .or_else(|| {
-                    data.as_ref()
-                        .and_then(|d| d.get("msg").and_then(|m| m.as_str()))
-                })
-                .or_else(|| {
-                    data.as_ref()
-                        .and_then(|d| d.get("error").and_then(|e| e.as_str()))
-                })
-                .unwrap_or(&text);
+            let message = api_error_message(&data, &text);
             let code = data
                 .as_ref()
                 .and_then(|d| d.get("code"))
