@@ -30,7 +30,7 @@ One-time setup on each site, for repository `foisalislambd/nowpayments-package`:
 
 - npm: package **nowpayments-node** → Settings → Trusted Publisher
 - PyPI: project **nowpayments-py** → Publishing → Add a new pending publisher
-- crates.io: crate **nowpayments-rust** → Settings → Trusted Publishing. The crate has to exist before the first OIDC publish (`cargo login` and `cargo publish` once from your machine if it does not).
+- crates.io: no local Cargo install. Add the `CARGO_REGISTRY_TOKEN` secret below and GitHub Actions publishes the crate. After `nowpayments-rust` exists, Trusted Publishing can replace that token: crate **Settings → Trusted Publishing**, workflow `release.yml`, environment empty.
 - RubyGems: gem **nowpayments-ruby** → Trusted publishers
 
 Packagist and Go read a git repository, not an uploaded archive. Public Packagist cannot install a package from a subdirectory, and the Go module path is `github.com/foisalislambd/nowpayments-go`. The workflow therefore copies `packages/php` to `github.com/foisalislambd/nowpayments-php` and `packages/go` to `github.com/foisalislambd/nowpayments-go`, commits on top of `main`, and pushes tag `vX.Y.Z`.
@@ -38,6 +38,7 @@ Packagist and Go read a git repository, not an uploaded archive. Public Packagis
 Add this repository secret:
 
 - `MIRROR_GITHUB_TOKEN` — a fine-grained personal access token that can write contents on `nowpayments-php` and `nowpayments-go`
+- `CARGO_REGISTRY_TOKEN` — crates.io API token with permission to publish new crates. This is what publishes the Rust crate from GitHub Actions until Trusted Publishing is turned on.
 
 Optional, only to ask Packagist to update immediately. The GitHub hook on `nowpayments-php` also picks up the new tag.
 
