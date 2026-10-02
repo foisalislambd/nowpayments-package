@@ -19,6 +19,7 @@ Gem::Specification.new do |spec|
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/foisalislambd/nowpayments-package"
   spec.metadata["changelog_uri"] = "https://github.com/foisalislambd/nowpayments-package/blob/main/CHANGELOG.md"
+  spec.metadata["github_repo"] = "ssh://github.com/foisalislambd/nowpayments-package"
 
   spec.files = Dir["lib/**/*", "README.md", "LICENSE"]
   spec.require_paths = ["lib"]
