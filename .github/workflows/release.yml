@@ -195,8 +195,16 @@ jobs:
         run: |
           if curl -fsS -A "nowpayments-release" -o /dev/null "https://rubygems.org/api/v2/rubygems/nowpayments-ruby/versions/${VERSION}.json"; then
             echo "RubyGems already has ${VERSION}"
-          else
-            gem push "nowpayments-ruby-${VERSION}.gem"
+            exit 0
+          fi
+          set +e
+          output=$(gem push "nowpayments-ruby-${VERSION}.gem" 2>&1)
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+          if [ "$status" -ne 0 ]; then
+            printf '%s\n' "$output" | grep -q "Repushing of gem versions is not allowed" && echo "RubyGems already has ${VERSION}" && exit 0
+            exit "$status"
           fi
         env:
           VERSION: ${{ needs.gate.outputs.version }}
