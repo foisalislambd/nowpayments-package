@@ -1,0 +1,324 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: Check VERSION.md
+    if: >
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    outputs:
+      release: ${{ steps.gate.outputs.release }}
+      version: ${{ steps.gate.outputs.version }}
+      sha: ${{ steps.gate.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+      - id: gate
+        run: |
+          git fetch origin '+refs/tags/*:refs/tags/*'
+          python scripts/check_release.py
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+  npm:
+    name: Publish npm
+    needs: gate
+    if: needs.gate.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    defaults:
+      run:
+        working-directory: packages/node
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+          cache-dependency-path: packages/node/package-lock.json
+      - run: npm ci
+      - name: Set version
+        run: npm version "${VERSION}" --no-git-tag-version --allow-same-version
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+      - name: Publish
+        run: |
+          if npm view "nowpayments-node@${VERSION}" version >/dev/null 2>&1; then
+            echo "npm already has ${VERSION}"
+          else
+            npm publish --access public
+          fi
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+      - name: Publish to GitHub Packages
+        run: |
+          npm pkg set name="@foisalislambd/nowpayments-node"
+          echo "@foisalislambd:registry=https://npm.pkg.github.com" >> .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> .npmrc
+          if npm view "@foisalislambd/nowpayments-node@${VERSION}" version --registry https://npm.pkg.github.com >/dev/null 2>&1; then
+            echo "GitHub Packages already has ${VERSION}"
+          else
+            npm publish --registry https://npm.pkg.github.com --access public
+          fi
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pypi:
+    name: Publish PyPI
+    needs: gate
+    if: needs.gate.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Build
+        run: |
+          python scripts/set_version.py "${VERSION}"
+          python -m pip install build
+          python -m build packages/python
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+      - uses: pypa/gh-action-pypi-publish@v1.14.2
+        with:
+          packages-dir: packages/python/dist
+          skip-existing: true
+
+  crates:
+    name: Publish crates.io
+    needs: gate
+    if: needs.gate.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: packages/rust
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Set version
+        working-directory: .
+        run: python scripts/set_version.py "${VERSION}"
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+      - uses: rust-lang/crates-io-auth-action@v1.0.5
+        id: auth
+      - name: Publish
+        run: |
+          if curl -fsS -A "nowpayments-release" -o /dev/null "https://crates.io/api/v1/crates/nowpayments-rust/${VERSION}"; then
+            echo "crates.io already has ${VERSION}"
+          else
+            cargo publish --allow-dirty
+          fi
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+  rubygems:
+    name: Publish RubyGems
+    needs: gate
+    if: needs.gate.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    defaults:
+      run:
+        working-directory: packages/ruby
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+          persist-credentials: false
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      - name: Set version
+        working-directory: .
+        run: python scripts/set_version.py "${VERSION}"
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+      - uses: rubygems/configure-rubygems-credentials@v2.1.0
+      - name: Build gem
+        run: gem build nowpayments.gemspec
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+      - name: Publish to RubyGems
+        run: |
+          if curl -fsS -A "nowpayments-release" -o /dev/null "https://rubygems.org/api/v2/rubygems/nowpayments-ruby/versions/${VERSION}.json"; then
+            echo "RubyGems already has ${VERSION}"
+          else
+            gem push "nowpayments-ruby-${VERSION}.gem"
+          fi
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+      - name: Publish to GitHub Packages
+        run: |
+          mkdir -p "$HOME/.gem"
+          printf '%s\n' "---" ":github: Bearer ${GITHUB_TOKEN}" > "$HOME/.gem/credentials"
+          chmod 0600 "$HOME/.gem/credentials"
+          set +e
+          output=$(gem push --key github --host "https://rubygems.pkg.github.com/foisalislambd" "nowpayments-ruby-${VERSION}.gem" 2>&1)
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+          if [ "$status" -ne 0 ]; then
+            printf '%s\n' "$output" | grep -qi "already" && exit 0
+            exit "$status"
+          fi
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  packagist:
+    name: Publish Packagist
+    needs: gate
+    if: needs.gate.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          coverage: none
+      - name: Validate
+        working-directory: packages/php
+        run: composer validate --strict --no-check-publish
+      - name: Push tag to nowpayments-php
+        run: python scripts/mirror_release.py packages/php foisalislambd/nowpayments-php "${VERSION}"
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+          MIRROR_GITHUB_TOKEN: ${{ secrets.MIRROR_GITHUB_TOKEN }}
+      - name: Ask Packagist to update
+        run: |
+          if [ -z "${PACKAGIST_USERNAME}" ] || [ -z "${PACKAGIST_TOKEN}" ]; then
+            echo "No Packagist API token. The GitHub hook on nowpayments-php will import the new tag."
+            exit 0
+          fi
+          curl --fail-with-body -sS -X POST \
+            -H "content-type: application/json" \
+            "https://packagist.org/api/update-package?username=${PACKAGIST_USERNAME}&apiToken=${PACKAGIST_TOKEN}" \
+            -d '{"repository":{"url":"https://github.com/foisalislambd/nowpayments-php"}}'
+        env:
+          PACKAGIST_USERNAME: ${{ secrets.PACKAGIST_USERNAME }}
+          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
+
+  go:
+    name: Publish Go module
+    needs: gate
+    if: needs.gate.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/go
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.23"
+      - run: go test ./...
+      - name: Push tag to nowpayments-go
+        working-directory: .
+        run: python scripts/mirror_release.py packages/go foisalislambd/nowpayments-go "${VERSION}"
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+          MIRROR_GITHUB_TOKEN: ${{ secrets.MIRROR_GITHUB_TOKEN }}
+      - name: Index on the module proxy
+        working-directory: .
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if curl -fsS "https://proxy.golang.org/github.com/foisalislambd/nowpayments-go/@v/v${VERSION}.info"; then
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "proxy.golang.org has not indexed v${VERSION} yet. The tag is on GitHub and the proxy will catch up."
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+
+  github:
+    name: GitHub release
+    needs: [gate, npm, pypi, crates, rubygems, packagist, go]
+    if: >
+      needs.gate.outputs.release == 'true' &&
+      needs.npm.result == 'success' &&
+      needs.pypi.result == 'success' &&
+      needs.crates.result == 'success' &&
+      needs.rubygems.result == 'success' &&
+      needs.packagist.result == 'success' &&
+      needs.go.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+      - name: Create release
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+          SHA: ${{ needs.gate.outputs.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            echo "GitHub release v${VERSION} already exists"
+            exit 0
+          fi
+          cat > release-notes.md <<EOF
+          ## NOWPayments SDKs ${VERSION}
+
+          - npm: nowpayments-node
+          - GitHub Packages npm: @foisalislambd/nowpayments-node
+          - PyPI: nowpayments-py
+          - crates.io: nowpayments-rust
+          - RubyGems: nowpayments-ruby
+          - GitHub Packages RubyGems: nowpayments-ruby
+          - Packagist: foisalislambd/nowpayments-php
+          - Go: github.com/foisalislambd/nowpayments-go
+          EOF
+          gh release create "v${VERSION}" \
+            --target "${SHA}" \
+            --title "v${VERSION}" \
+            --notes-file release-notes.md

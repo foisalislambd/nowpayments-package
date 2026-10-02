@@ -98,6 +98,10 @@ python scripts/format_api_docs.py
 python scripts/verify_sdk_parity.py
 ```
 
+## Releases
+
+The version for every SDK is in [VERSION.md](./VERSION.md). Push a higher version to `main`. After CI passes, GitHub creates tag `vX.Y.Z` and publishes npm, PyPI, crates.io, and RubyGems with Trusted Publishing. Packagist and the Go module are published with a git tag, because those registries do not accept a Trusted Publisher upload from this monorepo.
+
 ## Contributing
 
 Issues and pull requests are welcome. Read [CONTRIBUTING.md](./CONTRIBUTING.md) before you open one.

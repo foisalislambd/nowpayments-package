@@ -52,4 +52,4 @@ python scripts/format_api_docs.py
 
 ## Releases
 
-Package versions are currently `1.0.4` and are published from each package directory to npm, PyPI, Packagist, RubyGems, crates.io, and the Go module proxy. Version bumps belong in that package’s manifest (`package.json`, `pyproject.toml`, `composer.json`, `nowpayments.gemspec` / `version.rb`, `Cargo.toml`) and in [CHANGELOG.md](./CHANGELOG.md).
+Change the version in [VERSION.md](./VERSION.md) and push that to `main`. After CI passes, a higher version is tagged and published. The same version, or a lower one, is ignored. Registry setup is documented in that file. Note the change in [CHANGELOG.md](./CHANGELOG.md).

@@ -36,11 +36,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Foisalislambd/nowpayments-node.git"
+    "url": "git+https://github.com/foisalislambd/nowpayments-package.git",
+    "directory": "packages/node"
   },
-  "homepage": "https://github.com/Foisalislambd/nowpayments-node#readme",
+  "homepage": "https://github.com/foisalislambd/nowpayments-package/tree/main/packages/node#readme",
   "bugs": {
-    "url": "https://github.com/Foisalislambd/nowpayments-node/issues"
+    "url": "https://github.com/foisalislambd/nowpayments-package/issues"
   },
   "engines": {
     "node": ">=18"

@@ -41,9 +41,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Foisalislambd/nowpayments-py"
-Repository = "https://github.com/Foisalislambd/nowpayments-py"
-Documentation = "https://github.com/Foisalislambd/nowpayments-py#readme"
+Homepage = "https://github.com/foisalislambd/nowpayments-package/tree/main/packages/python"
+Repository = "https://github.com/foisalislambd/nowpayments-package"
+Documentation = "https://github.com/foisalislambd/nowpayments-package/tree/main/packages/python#readme"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+### Added
+
+- `VERSION.md` is the release version. A push to `main` publishes a GitHub release only when that version is greater than the latest `v` tag.
+- Trusted Publishing for npm, PyPI, crates.io, and RubyGems.
+- npm and RubyGems also publish to GitHub Packages. PyPI, crates.io, Packagist, and Go have no GitHub Packages registry.
+- Packagist and Go publish by tagging `nowpayments-php` and `nowpayments-go`, which is how those registries accept a package.
+
 ### Changed
 
 - Node: axios 1.20, TypeScript 7.0, and `@types/node` 26. Type declarations are emitted with `tsc` because tsup cannot generate them on TypeScript 7.
