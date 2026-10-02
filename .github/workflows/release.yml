@@ -155,17 +155,11 @@ jobs:
       - uses: rust-lang/crates-io-auth-action@v1.0.5
         id: auth
         if: steps.crate.outputs.exists == 'false'
-        continue-on-error: true
       - name: Publish
         if: steps.crate.outputs.exists == 'false'
-        run: |
-          if [ -z "${CARGO_REGISTRY_TOKEN}" ]; then
-            echo "crates.io has no Trusted Publisher yet. Add the CARGO_REGISTRY_TOKEN repository secret from crates.io → Account Settings → API Tokens. Cargo on your PC is not required."
-            exit 1
-          fi
-          cargo publish --allow-dirty
+        run: cargo publish --allow-dirty
         env:
-          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token || secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
 
   rubygems:
     name: Publish RubyGems
