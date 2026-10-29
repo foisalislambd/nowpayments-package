@@ -116,7 +116,7 @@ jobs:
           python -m build packages/python
         env:
           VERSION: ${{ needs.gate.outputs.version }}
-      - uses: pypa/gh-action-pypi-publish@v1.14.2
+      - uses: pypa/gh-action-pypi-publish@v1.14.3
         with:
           packages-dir: packages/python/dist
           skip-existing: true
